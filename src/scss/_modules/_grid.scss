@@ -1,18 +1,24 @@
 .grid {
+    overflow: hidden;
+
     .grid-debug {
         border: 1px solid black;
         opacity: .5;
         position: absolute;
     }   
 
-    .grid-item {
-        box-sizing: border-box;
+    .grid-items {
         position: absolute;
-        padding: 2px;
-        .grid-item__inner {
-            background: red;
-            width: 100%;
-            height: 100%;
+        
+        .grid-item {
+            box-sizing: border-box;
+            position: absolute;
+            padding: 2px;
+            .grid-item__inner {
+                background: red;
+                width: 100%;
+                height: 100%;
+            }
         }
     }
 }

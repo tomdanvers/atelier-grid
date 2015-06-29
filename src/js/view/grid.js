@@ -1,15 +1,17 @@
+var raf = require('raf');
 var GridItem = require('./grid-item');
 
 module.exports = function() {
+	
 	console.log('Grid');
 
 	var el = document.createElement('div');
 	el.classList.add('grid');
 
-	var elItems = document.createElement('div');
-	elItems.classList.add('grid-items');
+	var itemsEl = document.createElement('div');
+	itemsEl.classList.add('grid-items');
 
-	el.appendChild(elItems);
+	el.appendChild(itemsEl);
 	
 	var canvas = document.createElement('canvas');	
 	var ctx = canvas.getContext('2d');
@@ -17,12 +19,12 @@ module.exports = function() {
 	var scaleY = 24;
 	
 	function render() {
-		canvas.width = colCount*scaleX;
-		canvas.height = rowCount*scaleY;
+		canvas.width = viewportWidthCells * scaleX;
+		canvas.height = viewportHeightCells * scaleY;
 		
 		for (var x = 0; x < columns.length; x++) {
 			
-			for (var y = 0; y < rowCount; y++) {
+			for (var y = 0; y < viewportHeightCells; y++) {
 				var space = columns[x][y];
 				var item = space.item;
 				if(item){
@@ -36,14 +38,6 @@ module.exports = function() {
 		el.appendChild(canvas)
 	}
 
-	
-
-	
-
-
-
-
-
 	// Cells
 
 	var cellWidthBase = 60;
@@ -51,11 +45,16 @@ module.exports = function() {
 	var cellWidthAdjusted = 0;
 	var cellHeightAdjusted = 0;
 
-	var rowCount = 0;
-	var colCount = 0;
+	var viewportHeightCells = 0;
+	var viewportWidthCells = 0;
 
 	var vieportWidth;
 	var viewportHeight;
+
+	var originIndex;
+
+	var columnIndexMax = 0;
+	var columnIndexMin = 0;
 
 	var itemDefinitions = [
 		{
@@ -83,27 +82,31 @@ module.exports = function() {
 	var idCount;
 	
 	var columns;
-	var currentColumn;
+	var currentColumnLeft;
+	var currentColumnRight;
 
 	window.addEventListener('resize', resize);
 	resize();
 
 	function resize() {
 
-		viewportWidth = window.innerWidth;
-		viewportHeight = window.innerHeight;
+		if (window.innerHeight - 1 !== viewportHeight) {
 
-		rowCount = Math.floor(viewportHeight / cellHeightBase);
+			viewportWidth = window.innerWidth;
+			viewportHeight = window.innerHeight - 1;
 
-		cellHeightAdjusted = Math.ceil(viewportHeight / rowCount);
-		cellWidthAdjusted = cellHeightAdjusted / cellHeightBase * cellWidthBase;
+			viewportHeightCells = Math.floor(viewportHeight / cellHeightBase);
 
-		colCount = Math.ceil(viewportWidth / cellWidthAdjusted);		
+			cellHeightAdjusted = viewportHeight / viewportHeightCells;
+			cellWidthAdjusted = cellHeightAdjusted / cellHeightBase * cellWidthBase;
 
-		console.log('COLS:', colCount, 'ROWS:', rowCount)
+			viewportWidthCells = Math.ceil(viewportWidth / cellWidthAdjusted);		
 
-		regenerate();
+			console.log('COLS:', viewportWidthCells, 'ROWS:', viewportHeightCells)
 
+			regenerate();
+
+		} 
 	}
 
 
@@ -111,33 +114,37 @@ module.exports = function() {
 
 		idCount = 0;
 
+		originIndex = 0;
+
 		columns = [];
 		// currentColumnIndex = 0;
-		currentColumn = createColumn(0, 1);
+		currentColumnLeft = currentColumnRight = createColumn(0, 1);
 
-		elItems.innerHTML = '';
+		itemsEl.innerHTML = '';
 
-		update();
+		// update();
 
 	}
 
-	function update() {
+	function update(direction) {
+		
+		var currentColumn = direction === -1 ? currentColumnLeft : currentColumnRight;
 
 		if (currentColumn.full) {
 
-			nextColumn();
+			nextColumn(direction);
 
 		} else {
 
-			for (var i = 0; i < rowCount; i++) {
+			for (var i = 0; i < viewportHeightCells; i++) {
 				
 				if (currentColumn[i].item === null) {
 
 					// Select a grid item definition that fits vertically in the available space
-					var definition = getDefinition(i);
+					var definition = getDefinition(i, currentColumn);
 
 					// Add a grid item based on the selected definition
-					addGridItem(definition, currentColumn.index, i);
+					addGridItem(definition, direction === 1 ? currentColumn.index : currentColumn.index - definition.width + 1, i, direction);
 
 				}
 			}
@@ -146,16 +153,16 @@ module.exports = function() {
 		
 		render();
 			
-		if(currentColumn.index < colCount) {
-			setTimeout(update, 100);
-		} else {
-			console.log(columns)
+		// if(currentColumn.index < viewportWidthCells) {
+		// 	setTimeout(update, 100);
+		// } else {
+		// 	console.log(columns)
 
-		}
+		// }
 
 	}
 
-	function getDefinition(originY) {
+	function getDefinition(originY, currentColumn) {
 		
 		var definition = null;
 		var searching = true;
@@ -163,7 +170,7 @@ module.exports = function() {
 			definition = itemDefinitions[Math.floor(Math.random() * itemDefinitions.length)];
 			searching = false;
 			for (var i = originY; i < originY + definition.height; i++) {
-				if(i >= rowCount || currentColumn[i].item !== null) {
+				if(i >= viewportHeightCells || currentColumn[i].item !== null) {
 					searching = true;
 				}
 			}
@@ -173,7 +180,7 @@ module.exports = function() {
 
 	}
 
-	function addGridItem(definition, xOrigin, yOrigin) {
+	function addGridItem(definition, xOrigin, yOrigin, direction) {
 
 		var item = new GridItem(idCount ++, definition, xOrigin, yOrigin);
 		
@@ -182,61 +189,76 @@ module.exports = function() {
 		item.el.style.left = item.x * cellWidthAdjusted + 'px';
 		item.el.style.top = item.y * cellHeightAdjusted + 'px';
 
-		elItems.appendChild(item.el);
+		itemsEl.appendChild(item.el);
+
+		// TODO CHECK THE COLUMNS EXIST ALL AT ONCE WHEN DOING A 'LEFT SIDE COLUMN ADD'
 
 		for (var x = xOrigin; x < xOrigin + item.width; x++) {
 			
-			if (columns[x] === undefined) {
-				createColumn(x, 1);
+			if (columns[x + originIndex] === undefined || columns[x + originIndex].index !== x) {
+				createColumn(x, direction);
 			}	
 
 			for (var y = yOrigin; y < yOrigin + item.height; y++) {
-				columns[x][y].item = item;
+				columns[x + originIndex][y].item = item;
 			}	
 		}
 
 		// Check if column is full
+
+		var currentColumn = direction === 1 ? currentColumnRight : currentColumnLeft;
 		
-		if (filledCount() === rowCount) {
+		if (filledCount(currentColumn) === viewportHeightCells) {
 			currentColumn.full = true;
-			
-			nextColumn();
+			if (direction === 1) {
+				columnIndexMax = currentColumn.index;
+			} else {
+				columnIndexMin = currentColumn.index;
+			}
+			nextColumn(direction);
 		}
 
 	}
 
-	function filledCount() {
+	function filledCount(column) {
 		var filledCount = 0;
-		for (var i = 0; i < currentColumn.length; i++) {
-			if (currentColumn[i].item !== null) {
+		for (var i = 0; i < column.length; i++) {
+			if (column[i].item !== null) {
 				filledCount ++;
 			}
 		}
 		return filledCount;
 	}
 
-	function nextColumn() {
-		// console.log('nextColumn', 'OLD', currentColumn.index, currentColumn);
-		if (columns[currentColumn.index + 1] === undefined) {
-			currentColumn = createColumn(currentColumn.index + 1, 1);
+	function nextColumn(direction) {
+		var currentColumn = direction === 1 ? currentColumnRight : currentColumnLeft;
+		console.log('nextColumn', 'OLD', currentColumn.index, currentColumn);
+		var next;
+		if (columns[currentColumn.index + originIndex + direction] === undefined || columns[currentColumn.index + originIndex + direction].index !== currentColumn.index + direction) {
+			next = createColumn(currentColumn.index + direction, direction);
 		} else {
-			currentColumn = columns[currentColumn.index + 1];
+			next = columns[currentColumn.index + originIndex + direction];
 		}
 
-		currentIndex = currentColumn.index;
+		if (direction === 1) {
+			currentColumnRight = next;
+		} else {
+			currentColumnLeft = next;
+		}
 
-		
-		// console.log('nextColumn', 'NEW',currentColumn.index, currentColumn);
-		if (filledCount() === rowCount) {
-			currentColumn.full = true;
-			nextColumn();
+		// console.log('next', 'NEW',currentColumn.index, currentColumn);
+		if (filledCount(next) === viewportHeightCells) {
+			next.full = true;
+			nextColumn(direction);
 		}
 	}
 
 	function createColumn(index, side) {
 
+		console.log('Grid.createColumn(',index, side,')');
+
 		var column = [];
-		for (var i = 0; i < rowCount; i++) {
+		for (var i = 0; i < viewportHeightCells; i++) {
 			column.push({
 				item: null,
 				x: index,
@@ -244,11 +266,14 @@ module.exports = function() {
 			});
 		}
 
-		// if (side === -1) {
-		// 	columns.unshift(column);
-		// } else if (side === 1) {
+		if (side === -1) {
+			originIndex ++;
+			columns.unshift(column);
+		} else if (side === 1) {
 			columns.push(column);
-		// }
+		}
+
+		console.log(columns)
 
 		column.full = false;
 		column.index = index;
@@ -258,20 +283,56 @@ module.exports = function() {
 
 
 	// Interaction
+	var xPosCell = 0;
+	var xPosScreen = 0;
+	var xVelocityScreen = 0;
 
-	el.addEventListener('mousemove', function(event) {
+	window.addEventListener('mousemove', function(event) {
 		
 		var x = event.clientX;
 		var margin = viewportWidth*.1;
 
 		if (x < margin) {
-			xVelocity = x / margin;
+			xVelocityScreen = 1 - x / margin;
 		} else if(x > margin * 5) {
-			xVelocity = (x - margin*5) / (margin*5)
+			xVelocityScreen = - (x - margin*5) / (margin*5);
+		} else {
+			xVelocityScreen = 0;
 		}
-		var xVelocity = x/margin
+
 		
 	});
+
+	// Animation
+
+	animate();
+
+	function animate() {
+
+		xPosScreen += xVelocityScreen;
+
+		var newXPosCell = xPosScreen / cellWidthAdjusted;
+
+		if (xVelocityScreen > 0) {
+			var leftCell = Math.floor(newXPosCell);
+			console.log('UPDATE', leftCell, columnIndexMin)
+			if (-leftCell < columnIndexMin + 1) {
+				update(-1);
+			}
+		} else if(xVelocityScreen < 0) {
+			var rightCell = - Math.floor(newXPosCell) + viewportWidthCells;
+			if(rightCell > columnIndexMax + 1) {
+				update(1);
+			}
+		} else if(currentColumnRight.index < viewportWidthCells) {
+			update(1);
+		}
+		// console.log(xVelocityScreen, newXPosCell)
+
+		itemsEl.style.left = xPosScreen + 'px';
+
+		raf(animate);
+	}
 
 
 
