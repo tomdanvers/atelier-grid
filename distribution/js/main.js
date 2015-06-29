@@ -954,12 +954,16 @@ module.exports = HandlebarsCompiler.template({"compiler":[6,">= 2.0.0-beta.1"],"
 },{"hbsfy/runtime":10}],15:[function(require,module,exports){
 var template = require('./grid-item.hbs');
 
-module.exports = function(id, definition, x, y) {
+module.exports = function(id, definition, x, y, direction) {
 	// console.log('GridItem(',id, definition, x, y,')');
 
 	var el = document.createElement('div');
 	el.id = id;
 	el.classList.add('grid-item');
+	el.classList.add(direction === 1 ? 'is-right' : 'is-left');
+	setTimeout(function() {
+		el.classList.remove(direction === 1 ? 'is-right' : 'is-left');
+	}, 200 + Math.random() * 200);
 	el.innerHTML = template({id:id});
 
 	var width = definition.width;
@@ -1046,6 +1050,11 @@ module.exports = function() {
 			width: 2,
 			height: 1,
 			label: 'landscape-small'	
+		},
+		{
+			width: 5,
+			height: 2,
+			label: 'landscape-medium'	
 		},
 		{
 			width: 1,
@@ -1165,7 +1174,7 @@ module.exports = function() {
 
 	function addGridItem(definition, xOrigin, yOrigin, direction) {
 
-		var item = new GridItem(idCount ++, definition, xOrigin, yOrigin);
+		var item = new GridItem(idCount ++, definition, xOrigin, yOrigin, direction);
 		
 		item.el.style.width = item.width * cellWidthAdjusted + 'px';
 		item.el.style.height = item.height * cellHeightAdjusted + 'px';
@@ -1255,7 +1264,7 @@ module.exports = function() {
 
 	function createColumn(index, side) {
 
-		console.log('Grid.createColumn(',index, side,')');
+		// console.log('Grid.createColumn(',index, side,')');
 
 		var column = [];
 		for (var i = 0; i < viewportHeightCells; i++) {

@@ -63,6 +63,11 @@ module.exports = function() {
 			label: 'landscape-small'	
 		},
 		{
+			width: 5,
+			height: 2,
+			label: 'landscape-medium'	
+		},
+		{
 			width: 1,
 			height: 1,
 			label: 'portrait-small'	
@@ -180,7 +185,7 @@ module.exports = function() {
 
 	function addGridItem(definition, xOrigin, yOrigin, direction) {
 
-		var item = new GridItem(idCount ++, definition, xOrigin, yOrigin);
+		var item = new GridItem(idCount ++, definition, xOrigin, yOrigin, direction);
 		
 		item.el.style.width = item.width * cellWidthAdjusted + 'px';
 		item.el.style.height = item.height * cellHeightAdjusted + 'px';
@@ -270,7 +275,7 @@ module.exports = function() {
 
 	function createColumn(index, side) {
 
-		console.log('Grid.createColumn(',index, side,')');
+		// console.log('Grid.createColumn(',index, side,')');
 
 		var column = [];
 		for (var i = 0; i < viewportHeightCells; i++) {

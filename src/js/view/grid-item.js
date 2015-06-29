@@ -1,11 +1,15 @@
 var template = require('./grid-item.hbs');
 
-module.exports = function(id, definition, x, y) {
+module.exports = function(id, definition, x, y, direction) {
 	// console.log('GridItem(',id, definition, x, y,')');
 
 	var el = document.createElement('div');
 	el.id = id;
 	el.classList.add('grid-item');
+	el.classList.add(direction === 1 ? 'is-right' : 'is-left');
+	setTimeout(function() {
+		el.classList.remove(direction === 1 ? 'is-right' : 'is-left');
+	}, 200 + Math.random() * 200);
 	el.innerHTML = template({id:id});
 
 	var width = definition.width;
