@@ -1,7 +1,7 @@
 var template = require('./grid-item.hbs');
 
 module.exports = function(id, definition, x, y) {
-	console.log('GridItem(',id, definition, x, y,')');
+	// console.log('GridItem(',id, definition, x, y,')');
 
 	var el = document.createElement('div');
 	el.id = id;

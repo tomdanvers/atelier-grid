@@ -90,19 +90,19 @@ module.exports = function() {
 
 	function resize() {
 
-		if (window.innerHeight - 1 !== viewportHeight) {
+		var isChanged = window.innerHeight - 1 !== viewportHeight;
 
-			viewportWidth = window.innerWidth;
-			viewportHeight = window.innerHeight - 1;
+		viewportWidth = window.innerWidth;
+		viewportHeight = window.innerHeight - 1;
 
-			viewportHeightCells = Math.floor(viewportHeight / cellHeightBase);
+		viewportHeightCells = Math.floor(viewportHeight / cellHeightBase);
 
-			cellHeightAdjusted = viewportHeight / viewportHeightCells;
-			cellWidthAdjusted = cellHeightAdjusted / cellHeightBase * cellWidthBase;
+		cellHeightAdjusted = viewportHeight / viewportHeightCells;
+		cellWidthAdjusted = cellHeightAdjusted / cellHeightBase * cellWidthBase;
 
-			viewportWidthCells = Math.ceil(viewportWidth / cellWidthAdjusted);		
+		viewportWidthCells = Math.ceil(viewportWidth / cellWidthAdjusted);
 
-			console.log('COLS:', viewportWidthCells, 'ROWS:', viewportHeightCells)
+		if (isChanged) {
 
 			regenerate();
 
@@ -121,6 +121,11 @@ module.exports = function() {
 		currentColumnLeft = currentColumnRight = createColumn(0, 1);
 
 		itemsEl.innerHTML = '';
+
+		xPosCell = 0;
+		xPosScreen = 0;
+		xVelocityScreenTarget = 0;
+		xVelocityScreenCurrent = 0;
 
 		// update();
 
@@ -152,13 +157,6 @@ module.exports = function() {
 		}
 		
 		render();
-			
-		// if(currentColumn.index < viewportWidthCells) {
-		// 	setTimeout(update, 100);
-		// } else {
-		// 	console.log(columns)
-
-		// }
 
 	}
 
@@ -191,18 +189,36 @@ module.exports = function() {
 
 		itemsEl.appendChild(item.el);
 
-		// TODO CHECK THE COLUMNS EXIST ALL AT ONCE WHEN DOING A 'LEFT SIDE COLUMN ADD'
 
-		for (var x = xOrigin; x < xOrigin + item.width; x++) {
+		if (direction === 1) {
+
+			for (var x = xOrigin; x < xOrigin + item.width; x++) {
+				
+				if (columns[x + originIndex] === undefined || columns[x + originIndex].index !== x) {
+					createColumn(x, direction);
+				}	
+
+				for (var y = yOrigin; y < yOrigin + item.height; y++) {
+					columns[x + originIndex][y].item = item;
+				}	
+			}
 			
-			if (columns[x + originIndex] === undefined || columns[x + originIndex].index !== x) {
-				createColumn(x, direction);
-			}	
+		} else {
 
-			for (var y = yOrigin; y < yOrigin + item.height; y++) {
-				columns[x + originIndex][y].item = item;
-			}	
+			for (var x = xOrigin + item.width - 1; x >= xOrigin; x--) {
+				
+				if (columns[x + originIndex] === undefined || columns[x + originIndex].index !== x) {
+					createColumn(x, direction);
+				}	
+
+				for (var y = yOrigin; y < yOrigin + item.height; y++) {
+					columns[x + originIndex][y].item = item;
+				}	
+			}
+
 		}
+
+
 
 		// Check if column is full
 
@@ -232,7 +248,7 @@ module.exports = function() {
 
 	function nextColumn(direction) {
 		var currentColumn = direction === 1 ? currentColumnRight : currentColumnLeft;
-		console.log('nextColumn', 'OLD', currentColumn.index, currentColumn);
+		
 		var next;
 		if (columns[currentColumn.index + originIndex + direction] === undefined || columns[currentColumn.index + originIndex + direction].index !== currentColumn.index + direction) {
 			next = createColumn(currentColumn.index + direction, direction);
@@ -246,7 +262,6 @@ module.exports = function() {
 			currentColumnLeft = next;
 		}
 
-		// console.log('next', 'NEW',currentColumn.index, currentColumn);
 		if (filledCount(next) === viewportHeightCells) {
 			next.full = true;
 			nextColumn(direction);
@@ -273,8 +288,6 @@ module.exports = function() {
 			columns.push(column);
 		}
 
-		console.log(columns)
-
 		column.full = false;
 		column.index = index;
 
@@ -285,7 +298,8 @@ module.exports = function() {
 	// Interaction
 	var xPosCell = 0;
 	var xPosScreen = 0;
-	var xVelocityScreen = 0;
+	var xVelocityScreenTarget = 0;
+	var xVelocityScreenCurrent = 0;
 
 	window.addEventListener('mousemove', function(event) {
 		
@@ -293,13 +307,14 @@ module.exports = function() {
 		var margin = viewportWidth*.1;
 
 		if (x < margin) {
-			xVelocityScreen = 1 - x / margin;
-		} else if(x > margin * 5) {
-			xVelocityScreen = - (x - margin*5) / (margin*5);
+			xVelocityScreenTarget = 1 - x / margin;
+		} else if(x > viewportWidth - margin) {
+			xVelocityScreenTarget = - ( 1 - (viewportWidth - x) / margin);
 		} else {
-			xVelocityScreen = 0;
+			xVelocityScreenTarget = 0;
 		}
 
+		xVelocityScreenTarget *= 5;
 		
 	});
 
@@ -309,17 +324,18 @@ module.exports = function() {
 
 	function animate() {
 
-		xPosScreen += xVelocityScreen;
+		xVelocityScreenCurrent += (xVelocityScreenTarget-xVelocityScreenCurrent) * .2;
+
+		xPosScreen += xVelocityScreenCurrent;
 
 		var newXPosCell = xPosScreen / cellWidthAdjusted;
 
-		if (xVelocityScreen > 0) {
+		if (xVelocityScreenCurrent > 0) {
 			var leftCell = Math.floor(newXPosCell);
-			console.log('UPDATE', leftCell, columnIndexMin)
 			if (-leftCell < columnIndexMin + 1) {
 				update(-1);
 			}
-		} else if(xVelocityScreen < 0) {
+		} else if(xVelocityScreenCurrent < 0) {
 			var rightCell = - Math.floor(newXPosCell) + viewportWidthCells;
 			if(rightCell > columnIndexMax + 1) {
 				update(1);
@@ -327,19 +343,12 @@ module.exports = function() {
 		} else if(currentColumnRight.index < viewportWidthCells) {
 			update(1);
 		}
-		// console.log(xVelocityScreen, newXPosCell)
+		// console.log(xVelocityScreenTarget, newXPosCell)
 
 		itemsEl.style.left = xPosScreen + 'px';
 
 		raf(animate);
 	}
-
-
-
-
-
-
-
 
 	return {
 		el : el
