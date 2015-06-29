@@ -1,0 +1,33 @@
+
+html {
+	width: 100%;
+	height: auto;
+	overflow: hidden;
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	width: 100%;
+	margin: 0;
+	height: auto;
+	font-family: sans-serif;
+	background-color: #FFF;
+}
+
+a {
+	text-decoration: none;
+	color: inherit;
+}
+
+.is-hidden {
+    display: none;
+}
+
+.page-container {
+	width: 100%;
+}
+
+video::-webkit-media-controls {
+    display:none !important;
+}

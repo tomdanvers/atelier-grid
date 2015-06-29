@@ -1,0 +1,21 @@
+{
+  "name": "atelier-grid",
+  "version": "0.0.0",
+  "description": "",
+  "main": "gulpfile.js",
+  "browserify": {
+    "transform": [
+      "hbsfy"
+    ]
+  },
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-browserify": "^0.5.1",
+    "handlebars": "^3.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "author": "Tom Danvers"
+}
