@@ -1,9 +1,12 @@
 var raf = require('raf');
 var GridItem = require('./grid-item');
+var GridImages = require('./grid-images');
 
-module.exports = function() {
+module.exports = function(imageData) {
 	
-	console.log('Grid');
+	console.log('Grid()');
+
+	var images = new GridImages(imageData);
 
 	var el = document.createElement('div');
 	el.classList.add('grid');
@@ -325,13 +328,18 @@ module.exports = function() {
 
 	// Animation
 
-	animate();
+	var timePrevious = 0;
+	var deltaTimeValueTarget = 1000/60;
 
-	function animate() {
+	raf(animate);
 
-		xVelocityScreenCurrent += (xVelocityScreenTarget-xVelocityScreenCurrent) * .2;
+	function animate(time) {
 
-		xPosScreen += xVelocityScreenCurrent;
+		var deltaTimeValue = (time - timePrevious) / deltaTimeValueTarget;
+
+		xVelocityScreenCurrent += (xVelocityScreenTarget - xVelocityScreenCurrent) * .2;
+
+		xPosScreen += xVelocityScreenCurrent * deltaTimeValue;
 
 		var newXPosCell = xPosScreen / cellWidthAdjusted;
 
@@ -348,9 +356,10 @@ module.exports = function() {
 		} else if(currentColumnRight.index < viewportWidthCells) {
 			update(1);
 		}
-		// console.log(xVelocityScreenTarget, newXPosCell)
 
 		itemsEl.style.left = xPosScreen + 'px';
+
+		timePrevious = time;
 
 		raf(animate);
 	}

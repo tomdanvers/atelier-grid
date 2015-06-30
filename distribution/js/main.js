@@ -942,16 +942,91 @@ module.exports.cancel = function() {
 },{"oMfpAn":1}],13:[function(require,module,exports){
 var Grid = require('./view/grid');
 
-var grid = new Grid();
+var imageData = [
+	'/img/1.jpg',
+	'/img/2.jpg',
+	'/img/3.jpg',
+	'/img/6.jpg'
+];
+var grid = new Grid(imageData);
 document.body.appendChild(grid.el);
-},{"./view/grid":16}],14:[function(require,module,exports){
+},{"./view/grid":17}],14:[function(require,module,exports){
+module.exports = function(data) {
+	console.log('GridImages(',data,')');
+
+	var api = {
+		onLoaded: onLoaded,
+		resample: resample
+	};
+
+	var totalCount = data.length;
+	var loadedCount = 0;
+
+	var onLoadedCallback = null;
+
+	var sourceImages = [];
+
+	loadStart();
+
+	function loadStart() {
+		
+		var img;
+		for (var i = 0; i < data.length; i++) {
+			img = document.createElement('img');
+			img.src = data[i];
+			img.addEventListener('error', onImageError);
+			img.addEventListener('load', onImageLoaded);
+
+		}
+	}
+
+	function onImageError(event) {
+
+		console.warn('Could not load image from', event.target.src);
+
+		if (loadedCount ++ === totalCount) {
+			loadComplete();
+		}
+	}
+
+	function onImageLoaded(event) {
+
+		sourceImages.push(event.target);
+		
+		if (loadedCount ++ === totalCount) {
+			loadComplete();
+		}
+	}
+
+	function loadComplete() {
+
+		totalCount = sourceImages.length;
+
+		if (onLoadedCallback) {
+			onLoadedCallback();
+		}
+	}
+
+	function onLoaded(callback) {
+		onLoadedCallback = callback;
+
+		return api;
+	}
+
+	function resample() {
+		
+	}
+
+	return api;
+}
+},{}],15:[function(require,module,exports){
 // hbsfy compiled Handlebars template
 var HandlebarsCompiler = require('hbsfy/runtime');
 module.exports = HandlebarsCompiler.template({"compiler":[6,">= 2.0.0-beta.1"],"main":function(depth0,helpers,partials,data) {
     return "<div class=\"grid-item__inner\">\n</div>";
 },"useData":true});
 
-},{"hbsfy/runtime":10}],15:[function(require,module,exports){
+},{"hbsfy/runtime":10}],16:[function(require,module,exports){
 var template = require('./grid-item.hbs');
 
 module.exports = function(id, definition, x, y, direction) {
@@ -986,13 +1061,16 @@ module.exports = function(id, definition, x, y, direction) {
 	};
 
 }
-},{"./grid-item.hbs":14}],16:[function(require,module,exports){
+},{"./grid-item.hbs":15}],17:[function(require,module,exports){
 var raf = require('raf');
 var GridItem = require('./grid-item');
+var GridImages = require('./grid-images');
 
-module.exports = function() {
+module.exports = function(imageData) {
 	
-	console.log('Grid');
+	console.log('Grid()');
+
+	var images = new GridImages(imageData);
 
 	var el = document.createElement('div');
 	el.classList.add('grid');
@@ -1314,13 +1392,18 @@ module.exports = function() {
 
 	// Animation
 
-	animate();
+	var timePrevious = 0;
+	var deltaTimeValueTarget = 1000/60;
 
-	function animate() {
+	raf(animate);
 
-		xVelocityScreenCurrent += (xVelocityScreenTarget-xVelocityScreenCurrent) * .2;
+	function animate(time) {
 
-		xPosScreen += xVelocityScreenCurrent;
+		var deltaTimeValue = (time - timePrevious) / deltaTimeValueTarget;
+
+		xVelocityScreenCurrent += (xVelocityScreenTarget - xVelocityScreenCurrent) * .2;
+
+		xPosScreen += xVelocityScreenCurrent * deltaTimeValue;
 
 		var newXPosCell = xPosScreen / cellWidthAdjusted;
 
@@ -1337,9 +1420,10 @@ module.exports = function() {
 		} else if(currentColumnRight.index < viewportWidthCells) {
 			update(1);
 		}
-		// console.log(xVelocityScreenTarget, newXPosCell)
 
 		itemsEl.style.left = xPosScreen + 'px';
+
+		timePrevious = time;
 
 		raf(animate);
 	}
@@ -1349,4 +1433,4 @@ module.exports = function() {
 	};
 
 }
-},{"./grid-item":15,"raf":11}]},{},[13])
+},{"./grid-images":14,"./grid-item":16,"raf":11}]},{},[13])
