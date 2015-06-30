@@ -2,11 +2,50 @@ var raf = require('raf');
 var GridItem = require('./grid-item');
 var GridImages = require('./grid-images');
 
-module.exports = function(imageData) {
+module.exports = function(imageData, imagePadding) {
 	
 	console.log('Grid()');
 
-	var images = new GridImages(imageData);
+	var itemDefinitions = [
+		{
+			width: 2,
+			height: 1,
+			id: 'landscape-small'	
+		},
+		// {
+		// 	width: 5,
+		// 	height: 2,
+		// 	id: 'landscape-medium'	
+		// },
+		// {
+		// 	width: 1,
+		// 	height: 1,
+		// 	id: 'portrait-small'	
+		// },
+		{
+			width: 2,
+			height: 2,
+			id: 'portrait-medium'	
+		},
+		{
+			width: 3,
+			height: 3,
+			id: 'portrait-large'	
+		}
+	];
+
+	var images = new GridImages(imageData, itemDefinitions)
+		.onProgress(function(value) {
+
+		})
+		.onLoaded(function() {
+
+			raf(animate);
+			
+			window.addEventListener('resize', resize);
+			resize();
+			
+		});
 
 	var el = document.createElement('div');
 	el.classList.add('grid');
@@ -15,36 +54,11 @@ module.exports = function(imageData) {
 	itemsEl.classList.add('grid-items');
 
 	el.appendChild(itemsEl);
-	
-	var canvas = document.createElement('canvas');	
-	var ctx = canvas.getContext('2d');
-	var scaleX = 16;
-	var scaleY = 24;
-	
-	function render() {
-		canvas.width = viewportWidthCells * scaleX;
-		canvas.height = viewportHeightCells * scaleY;
-		
-		for (var x = 0; x < columns.length; x++) {
-			
-			for (var y = 0; y < viewportHeightCells; y++) {
-				var space = columns[x][y];
-				var item = space.item;
-				if(item){
-					ctx.fillStyle = item.cssColour();
-					ctx.fillRect(x*scaleX, y*scaleY, scaleX, scaleY);
-				}
-			}	
-		}
-
-		canvas.classList.add('grid-debug');
-		el.appendChild(canvas)
-	}
 
 	// Cells
 
-	var cellWidthBase = 60;
-	var cellHeightBase = 90;
+	var cellWidthBase = 130;
+	var cellHeightBase = 180;
 	var cellWidthAdjusted = 0;
 	var cellHeightAdjusted = 0;
 
@@ -59,42 +73,12 @@ module.exports = function(imageData) {
 	var columnIndexMax = 0;
 	var columnIndexMin = 0;
 
-	var itemDefinitions = [
-		{
-			width: 2,
-			height: 1,
-			label: 'landscape-small'	
-		},
-		{
-			width: 5,
-			height: 2,
-			label: 'landscape-medium'	
-		},
-		{
-			width: 1,
-			height: 1,
-			label: 'portrait-small'	
-		},
-		{
-			width: 2,
-			height: 2,
-			label: 'portrait-medium'	
-		},
-		{
-			width: 3,
-			height: 3,
-			label: 'portrait-large'	
-		}
-	];
 	
 	var idCount;
 	
 	var columns;
 	var currentColumnLeft;
 	var currentColumnRight;
-
-	window.addEventListener('resize', resize);
-	resize();
 
 	function resize() {
 
@@ -111,6 +95,8 @@ module.exports = function(imageData) {
 		viewportWidthCells = Math.ceil(viewportWidth / cellWidthAdjusted);
 
 		if (isChanged) {
+
+			images.resample(cellWidthAdjusted, cellHeightAdjusted, imagePadding)
 
 			regenerate();
 
@@ -164,7 +150,7 @@ module.exports = function(imageData) {
 
 		}
 		
-		render();
+		// render();
 
 	}
 
@@ -189,11 +175,13 @@ module.exports = function(imageData) {
 	function addGridItem(definition, xOrigin, yOrigin, direction) {
 
 		var item = new GridItem(idCount ++, definition, xOrigin, yOrigin, direction);
+		item.addImage(images.getRandom(definition));
 		
 		item.el.style.width = item.width * cellWidthAdjusted + 'px';
 		item.el.style.height = item.height * cellHeightAdjusted + 'px';
 		item.el.style.left = item.x * cellWidthAdjusted + 'px';
 		item.el.style.top = item.y * cellHeightAdjusted + 'px';
+		item.el.style.padding = imagePadding + 'px';
 
 		itemsEl.appendChild(item.el);
 
@@ -322,7 +310,7 @@ module.exports = function(imageData) {
 			xVelocityScreenTarget = 0;
 		}
 
-		xVelocityScreenTarget *= 5;
+		xVelocityScreenTarget *= 4;
 		
 	});
 
@@ -330,8 +318,6 @@ module.exports = function(imageData) {
 
 	var timePrevious = 0;
 	var deltaTimeValueTarget = 1000/60;
-
-	raf(animate);
 
 	function animate(time) {
 
@@ -357,7 +343,7 @@ module.exports = function(imageData) {
 			update(1);
 		}
 
-		itemsEl.style.left = xPosScreen + 'px';
+		itemsEl.style.left = Math.round(xPosScreen) + 'px';
 
 		timePrevious = time;
 

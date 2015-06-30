@@ -14,6 +14,7 @@ module.exports = function(id, definition, x, y, direction) {
 
 	var width = definition.width;
 	var height = definition.height;
+	
 	var r = Math.floor(Math.random() * 255);
 	var g = Math.floor(Math.random() * 255);
 	var b = Math.floor(Math.random() * 255);
@@ -22,13 +23,22 @@ module.exports = function(id, definition, x, y, direction) {
 		return 'rgb(' + r + ',' + g + ',' + b + ')';
 	}
 
+	function addImage(image) {
+		
+		if (image !== undefined) {
+			el.children[0].appendChild(image);
+		}
+
+	}
+
 	return {
 		el : el,
 		x: x,
 		y:y,
 		width: width,
 		height: height,
-		cssColour: cssColour
+		cssColour: cssColour,
+		addImage: addImage
 	};
 
 }

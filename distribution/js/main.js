@@ -943,28 +943,83 @@ module.exports.cancel = function() {
 var Grid = require('./view/grid');
 
 var imageData = [
-	'/img/1.jpg',
-	'/img/2.jpg',
-	'/img/3.jpg',
-	'/img/6.jpg'
+	'/img/ghd-christmas-main.jpg',
+	'/img/ghd-christmas-main2.jpg',
+	'/img/ghd-christmas-main3.jpg',
+	'/img/ghd-christmas-main4.jpg',
+	'/img/ghd-christmas-main5.jpg',
+	'/img/ghd-christmas-main6.jpg',
+	'/img/ghd-my-hair-care-main.jpg',
+	'/img/ghd-my-hair-care-main2.jpg',
+	'/img/ghd-platinum-main2.jpg',
+	'/img/ghd-platinum-main4.jpg',
+	'/img/ghd-platinum-main5.jpg',
+	'/img/max-factor-100-years-main.jpg',
+	'/img/max-factor-100-years-main2.jpg',
+	'/img/max-factor-100-years-main3.jpg',
+	'/img/max-factor-100-years-main4.jpg',
+	'/img/max-factor-100-years-main5.jpg',
+	'/img/max-factor-2014-main.jpg',
+	'/img/max-factor-2014-main2.jpg',
+	'/img/max-factor-2014-main3.jpg',
+	'/img/max-factor-2014-main4.jpg',
+	'/img/max-factor-2014-main5.jpg',
+	'/img/max-factor-2014-main6.jpg',
+	'/img/max-factor-2014-main7.jpg',
+	'/img/max-factor-2014-main8.jpg',
+	'/img/max-factor-2014-main9.jpg',
+	'/img/max-factor-2014-main10.jpg',
+	'/img/max-factor-2014-main11.jpg',
+	'/img/max-factor-2015-main.jpg',
+	'/img/max-factor-2015-main2.jpg',
+	'/img/max-factor-2015-main3.jpg',
+	'/img/max-factor-2015-main4.jpg',
+	'/img/max-factor-2015-main5.jpg',
+	'/img/max-factor-2015-main6.jpg',
+	'/img/max-factor-2015-main7.jpg',
+	'/img/max-factor-2015-main8.jpg',
+	'/img/max-factor-2015-main9.jpg',
+	'/img/max-factor-2015-main10.jpg',
+	'/img/max-factor-2015-main11.jpg',
+	'/img/max-factor-2015-main12.jpg',
+	'/img/the-outnet-main.jpg',
+	'/img/the-outnet-main2.jpg',
+	'/img/the-outnet-main3.jpg',
+	'/img/the-outnet-main4.jpg',
+	'/img/the-outnet-main5.jpg',
+	'/img/the-outnet-main6.jpg',
+	'/img/the-outnet-main7.jpg',
+	'/img/the-outnet-main8.jpg',
+	'/img/the-outnet-main9.jpg',
+	'/img/the-outnet-main10.jpg',
+	'/img/the-outnet-main11.jpg'
 ];
-var grid = new Grid(imageData);
+var grid = new Grid(imageData, 10);
 document.body.appendChild(grid.el);
 },{"./view/grid":17}],14:[function(require,module,exports){
-module.exports = function(data) {
+module.exports = function(data, definitions) {
 	console.log('GridImages(',data,')');
 
 	var api = {
+		onProgress: onProgress,
 		onLoaded: onLoaded,
-		resample: resample
+		resample: resample,
+		getRandom: getRandom
 	};
 
 	var totalCount = data.length;
 	var loadedCount = 0;
 
+	var onLoadProgressCallback = null;
 	var onLoadedCallback = null;
 
 	var sourceImages = [];
+
+	var resampledImages = [];
+	var resampledImageMap = {};
+
+	var currentCellWidth;
+	var currentCellHeight;
 
 	loadStart();
 
@@ -984,37 +1039,124 @@ module.exports = function(data) {
 
 		console.warn('Could not load image from', event.target.src);
 
-		if (loadedCount ++ === totalCount) {
-			loadComplete();
-		}
+		incrementLoaded();
 	}
 
 	function onImageLoaded(event) {
 
 		sourceImages.push(event.target);
 		
-		if (loadedCount ++ === totalCount) {
+		incrementLoaded();
+		
+	}
+
+	function incrementLoaded() {
+		if (++ loadedCount === totalCount) {
 			loadComplete();
+		} else {
+			loadProgress(loadedCount/totalCount);
 		}
+	}
+
+	function loadProgress(value) {
+
+		console.log('GridImages.loadProgress(',value,')');
+
+		if (onLoadProgressCallback) {
+			onLoadProgressCallback(value);
+		}
+
 	}
 
 	function loadComplete() {
 
 		totalCount = sourceImages.length;
 
+		console.log('GridImages.loadComplete()');
+
 		if (onLoadedCallback) {
 			onLoadedCallback();
 		}
+
+	}
+
+	function onProgress(callback) {
+
+		onLoadProgressCallback = callback;
+
+		return api;
 	}
 
 	function onLoaded(callback) {
+		
 		onLoadedCallback = callback;
 
 		return api;
 	}
 
-	function resample() {
+	function resample(cellWidth, cellHeight, padding) {
 		
+		if (cellWidth !== currentCellWidth || cellHeight !== currentCellHeight) {
+
+			resampledImages = [];
+			resampledImageMap = {};
+
+			var definition;
+			var resampled;
+			var source;
+			var canvas;
+			var ctx;
+			
+			for (var i = 0; i < definitions.length; i++) {
+				
+				definition = definitions[i];
+
+				resampled = [];
+
+				for (var j = 0; j < sourceImages.length; j++) {
+
+					source = sourceImages[j];
+					
+					if ((definition.width > definition.height && source.width > source.height) || (definition.width <= definition.height && source.width < source.height)) {
+					
+						canvas = document.createElement('canvas');
+						canvas.width = Math.round(cellWidth * definition.width) - padding * 2;
+						canvas.height = Math.round(cellHeight * definition.height) - padding * 2;
+
+						ctx = canvas.getContext('2d');
+						ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+
+						resampled.push(canvas);
+
+					}
+
+				}
+
+				resampledImages.push(resampled);
+				resampledImageMap[definition.id] = resampled;
+
+			}
+
+		}
+
+		currentCellWidth = cellWidth;
+		currentCellHeight = cellHeight;
+
+	}
+
+	function getRandom(definition) {
+
+		if (definition === undefined) {
+			console.warn('Can\'t get a random image without specifying a definition.')
+		} else {
+			var images = resampledImageMap[definition.id];
+			var image = images[Math.floor(Math.random() * images.length)];
+			var clone = document.createElement('canvas');
+			clone.width = image.width;
+			clone.height = image.height;
+			clone.getContext('2d').drawImage(image, 0, 0)
+			return clone;
+		}
 	}
 
 	return api;
@@ -1043,6 +1185,7 @@ module.exports = function(id, definition, x, y, direction) {
 
 	var width = definition.width;
 	var height = definition.height;
+	
 	var r = Math.floor(Math.random() * 255);
 	var g = Math.floor(Math.random() * 255);
 	var b = Math.floor(Math.random() * 255);
@@ -1051,13 +1194,22 @@ module.exports = function(id, definition, x, y, direction) {
 		return 'rgb(' + r + ',' + g + ',' + b + ')';
 	}
 
+	function addImage(image) {
+		
+		if (image !== undefined) {
+			el.children[0].appendChild(image);
+		}
+
+	}
+
 	return {
 		el : el,
 		x: x,
 		y:y,
 		width: width,
 		height: height,
-		cssColour: cssColour
+		cssColour: cssColour,
+		addImage: addImage
 	};
 
 }
@@ -1066,11 +1218,50 @@ var raf = require('raf');
 var GridItem = require('./grid-item');
 var GridImages = require('./grid-images');
 
-module.exports = function(imageData) {
+module.exports = function(imageData, imagePadding) {
 	
 	console.log('Grid()');
 
-	var images = new GridImages(imageData);
+	var itemDefinitions = [
+		{
+			width: 2,
+			height: 1,
+			id: 'landscape-small'	
+		},
+		// {
+		// 	width: 5,
+		// 	height: 2,
+		// 	id: 'landscape-medium'	
+		// },
+		// {
+		// 	width: 1,
+		// 	height: 1,
+		// 	id: 'portrait-small'	
+		// },
+		{
+			width: 2,
+			height: 2,
+			id: 'portrait-medium'	
+		},
+		{
+			width: 3,
+			height: 3,
+			id: 'portrait-large'	
+		}
+	];
+
+	var images = new GridImages(imageData, itemDefinitions)
+		.onProgress(function(value) {
+
+		})
+		.onLoaded(function() {
+
+			raf(animate);
+			
+			window.addEventListener('resize', resize);
+			resize();
+			
+		});
 
 	var el = document.createElement('div');
 	el.classList.add('grid');
@@ -1079,36 +1270,11 @@ module.exports = function(imageData) {
 	itemsEl.classList.add('grid-items');
 
 	el.appendChild(itemsEl);
-	
-	var canvas = document.createElement('canvas');	
-	var ctx = canvas.getContext('2d');
-	var scaleX = 16;
-	var scaleY = 24;
-	
-	function render() {
-		canvas.width = viewportWidthCells * scaleX;
-		canvas.height = viewportHeightCells * scaleY;
-		
-		for (var x = 0; x < columns.length; x++) {
-			
-			for (var y = 0; y < viewportHeightCells; y++) {
-				var space = columns[x][y];
-				var item = space.item;
-				if(item){
-					ctx.fillStyle = item.cssColour();
-					ctx.fillRect(x*scaleX, y*scaleY, scaleX, scaleY);
-				}
-			}	
-		}
-
-		canvas.classList.add('grid-debug');
-		el.appendChild(canvas)
-	}
 
 	// Cells
 
-	var cellWidthBase = 60;
-	var cellHeightBase = 90;
+	var cellWidthBase = 130;
+	var cellHeightBase = 180;
 	var cellWidthAdjusted = 0;
 	var cellHeightAdjusted = 0;
 
@@ -1123,42 +1289,12 @@ module.exports = function(imageData) {
 	var columnIndexMax = 0;
 	var columnIndexMin = 0;
 
-	var itemDefinitions = [
-		{
-			width: 2,
-			height: 1,
-			label: 'landscape-small'	
-		},
-		{
-			width: 5,
-			height: 2,
-			label: 'landscape-medium'	
-		},
-		{
-			width: 1,
-			height: 1,
-			label: 'portrait-small'	
-		},
-		{
-			width: 2,
-			height: 2,
-			label: 'portrait-medium'	
-		},
-		{
-			width: 3,
-			height: 3,
-			label: 'portrait-large'	
-		}
-	];
 	
 	var idCount;
 	
 	var columns;
 	var currentColumnLeft;
 	var currentColumnRight;
-
-	window.addEventListener('resize', resize);
-	resize();
 
 	function resize() {
 
@@ -1175,6 +1311,8 @@ module.exports = function(imageData) {
 		viewportWidthCells = Math.ceil(viewportWidth / cellWidthAdjusted);
 
 		if (isChanged) {
+
+			images.resample(cellWidthAdjusted, cellHeightAdjusted, imagePadding)
 
 			regenerate();
 
@@ -1228,7 +1366,7 @@ module.exports = function(imageData) {
 
 		}
 		
-		render();
+		// render();
 
 	}
 
@@ -1253,11 +1391,13 @@ module.exports = function(imageData) {
 	function addGridItem(definition, xOrigin, yOrigin, direction) {
 
 		var item = new GridItem(idCount ++, definition, xOrigin, yOrigin, direction);
+		item.addImage(images.getRandom(definition));
 		
 		item.el.style.width = item.width * cellWidthAdjusted + 'px';
 		item.el.style.height = item.height * cellHeightAdjusted + 'px';
 		item.el.style.left = item.x * cellWidthAdjusted + 'px';
 		item.el.style.top = item.y * cellHeightAdjusted + 'px';
+		item.el.style.padding = imagePadding + 'px';
 
 		itemsEl.appendChild(item.el);
 
@@ -1386,7 +1526,7 @@ module.exports = function(imageData) {
 			xVelocityScreenTarget = 0;
 		}
 
-		xVelocityScreenTarget *= 5;
+		xVelocityScreenTarget *= 4;
 		
 	});
 
@@ -1394,8 +1534,6 @@ module.exports = function(imageData) {
 
 	var timePrevious = 0;
 	var deltaTimeValueTarget = 1000/60;
-
-	raf(animate);
 
 	function animate(time) {
 
@@ -1421,7 +1559,7 @@ module.exports = function(imageData) {
 			update(1);
 		}
 
-		itemsEl.style.left = xPosScreen + 'px';
+		itemsEl.style.left = Math.round(xPosScreen) + 'px';
 
 		timePrevious = time;
 
